@@ -20,6 +20,7 @@ namespace LiveSplit.Teslagrad2
             this.chkAutoReset = new System.Windows.Forms.CheckBox();
             this.lblNote = new System.Windows.Forms.Label();
             this.btnAutoAssignSplits = new System.Windows.Forms.Button();
+            this.btnResetAllSplitConditions = new System.Windows.Forms.Button();
             this.pnlRows = new System.Windows.Forms.Panel();
             this.pnlTop.SuspendLayout();
             this.SuspendLayout();
@@ -30,6 +31,7 @@ namespace LiveSplit.Teslagrad2
             this.pnlTop.Controls.Add(this.chkAutoReset);
             this.pnlTop.Controls.Add(this.lblNote);
             this.pnlTop.Controls.Add(this.btnAutoAssignSplits);
+            this.pnlTop.Controls.Add(this.btnResetAllSplitConditions);
 
             // chkAutoReset
             this.chkAutoReset.AutoSize = true;
@@ -55,6 +57,15 @@ namespace LiveSplit.Teslagrad2
                 "Try to set the split conditions based on the split names.\n"
               + "Defaults back to 'Manual Split' if no match is found.\n");
 
+            // btnResetAllSplitConditions
+            this.btnResetAllSplitConditions.AutoSize = true;
+            this.btnResetAllSplitConditions.Location = new System.Drawing.Point(125, 30);
+            this.btnResetAllSplitConditions.Name = "btnResetAllSplitConditions";
+            this.btnResetAllSplitConditions.Text = "Reset All Split Conditions";
+            this.myToolTip.SetToolTip(this.btnResetAllSplitConditions, 
+                "Reset all split conditions to 'Manual Split' and clear any extra parameters.\n"
+              + "This will not change the segment names.");
+
             // pnlRows
             this.pnlRows.Location = new System.Drawing.Point(0, 60);
             this.pnlRows.Size = new System.Drawing.Size(415, 280);
@@ -77,6 +88,7 @@ namespace LiveSplit.Teslagrad2
         private System.Windows.Forms.CheckBox chkAutoReset;
         private System.Windows.Forms.Label lblNote;
         private System.Windows.Forms.Button btnAutoAssignSplits;
+        private System.Windows.Forms.Button btnResetAllSplitConditions;
         private System.Windows.Forms.Panel pnlRows;
     }
 }

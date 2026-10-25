@@ -38,6 +38,7 @@ namespace LiveSplit.Teslagrad2
         {
             chkAutoReset.CheckedChanged += (s, e) => AutoReset = chkAutoReset.Checked;
             btnAutoAssignSplits.Click += OnAutoAssignSplitsClick;
+            btnResetAllSplitConditions.Click += OnResetAllSplitConditionsClick;
             this.Load += (s, e) => FitToParent();
             this.ParentChanged += (s, e) => FitToParent();
             this.SizeChanged += (s, e) => LayoutPanels();
@@ -59,6 +60,22 @@ namespace LiveSplit.Teslagrad2
 
             // Run the assignment logic here.
             AutoAssignSplits();
+        }
+
+        private void OnResetAllSplitConditionsClick(object sender, EventArgs e)
+        {
+            var result = MessageBox.Show(
+                this,
+                "Reset all split conditions to 'Manual Split'? This will clear any extra parameters.",
+                "Reset All Split Conditions",
+                MessageBoxButtons.OKCancel,
+                MessageBoxIcon.Question);
+
+            if (result != DialogResult.OK)
+                return;
+
+            // Reset all split conditions to ManualSplit
+            ResetAllSplitConditions();
         }
 
         private void FitToParent()
@@ -263,6 +280,15 @@ namespace LiveSplit.Teslagrad2
                 entry.ResetToManual(clearSegmentName: false);
             }
 
+            RebuildRows();
+        }
+
+        private void ResetAllSplitConditions()
+        {
+            for (int i = 1; i < Splits.Count; i++)
+            {
+                Splits[i].ResetToManual(clearSegmentName: false);
+            }
             RebuildRows();
         }
 
