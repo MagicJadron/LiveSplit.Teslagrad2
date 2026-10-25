@@ -168,19 +168,14 @@ namespace LiveSplit.Teslagrad2
             var run = _state?.Run;
             if (run == null || run.Count == 0) return;
 
-            // Clear existing assignments (except StartTimer)
-            for (int i = 1; i < Splits.Count; i++)
-            {
-                Splits[i].Type = SplitType.ManualSplit;
-                Splits[i].ScrollId = 0;
-                Splits[i].SceneName = "";
-            }
-
             // Try to fill in split parameters based on segment names
             // case-insensitive match, trim removes leading/trailing whitespace
             for (int i = 1; i < Splits.Count; i++)
             {
-                string segmentName = Splits[i].SegmentName ?? $"Segment {i}";
+                bool matchFound = false;
+                var entry = Splits[i];
+
+                string segmentName = entry.SegmentName ?? $"Segment {i}";
                 segmentName = segmentName.Trim();
 
                 // Skip if the segment name is just the default placeholder
@@ -194,12 +189,13 @@ namespace LiveSplit.Teslagrad2
                     if ((type.GetCategory().Equals("Skills") || type.GetCategory().Equals("Bosses"))
                         && segmentName.Equals(type.GetDisplayName(), StringComparison.OrdinalIgnoreCase))
                     {
-                        Splits[i].Type = type;
+                        entry.Type = type;
+                        matchFound = true;
                         break;
                     }
                 }
                 // Managed to identify split type?
-                if (Splits[i].Type != SplitType.ManualSplit)
+                if (matchFound)
                     continue;
 
                 // -----
@@ -215,16 +211,18 @@ namespace LiveSplit.Teslagrad2
                 // Scrolls
                 if (subs[0].Equals("Scroll", StringComparison.OrdinalIgnoreCase))
                 {
-                    Splits[i].Type = SplitType.Scrolls;
+                    entry.Type = SplitType.Scrolls;
 
                     // Try to parse the second part as an integer for the Scroll ID
                     if (int.TryParse(subs[1], out int scrollId) && scrollId > 0 && scrollId <= 100)
                     {
-                        Splits[i].ScrollId = scrollId;
+                        entry.ScrollId = scrollId;
                     }
+
+                    matchFound = true;
                 }
                 // Managed to identify split type?
-                if (Splits[i].Type != SplitType.ManualSplit)
+                if (matchFound)
                     continue;
                 
                 // -----
@@ -233,7 +231,7 @@ namespace LiveSplit.Teslagrad2
                     || subs[0].Equals("Enter", StringComparison.OrdinalIgnoreCase)
                     || subs[0].Equals("SceneEntered", StringComparison.OrdinalIgnoreCase))
                 {
-                    Splits[i].Type = SplitType.SceneEntered;
+                    entry.Type = SplitType.SceneEntered;
 
                     // Now use the rest as the scene name (scene names can contain spaces)
                     int toSkip = 1;
@@ -247,11 +245,17 @@ namespace LiveSplit.Teslagrad2
                             toSkip = 2;
                     }
 
-                    Splits[i].SceneName = string.Join(" ", subs.Skip(toSkip));
+                    entry.SceneName = string.Join(" ", subs.Skip(toSkip));
+
+                    matchFound = true;
                 }
                 // Managed to identify split type?
-                if (Splits[i].Type != SplitType.ManualSplit)
+                if (matchFound)
                     continue;
+
+                // -----
+                // If no match was found, reset it to ManualSplit and clear any extra parameters (but keep the segment name)
+                entry.ResetToManual(clearSegmentName: false);
             }
 
             RebuildRows();
