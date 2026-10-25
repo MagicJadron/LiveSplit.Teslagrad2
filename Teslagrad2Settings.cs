@@ -218,6 +218,11 @@ namespace LiveSplit.Teslagrad2
                     {
                         entry.ScrollId = scrollId;
                     }
+                    // Safety fallback to match UI
+                    else
+                    {
+                        entry.ScrollId = 1; // Default to 1 if parsing fails
+                    }
 
                     matchFound = true;
                 }
