@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Xml;
 using LiveSplit.Model;
@@ -189,7 +190,6 @@ namespace LiveSplit.Teslagrad2
             // case-insensitive match, trim removes leading/trailing whitespace
             for (int i = 1; i < Splits.Count; i++)
             {
-                bool matchFound = false;
                 var entry = Splits[i];
 
                 string segmentName = entry.SegmentName ?? $"Segment {i}";
@@ -199,88 +199,56 @@ namespace LiveSplit.Teslagrad2
                 if (segmentName.Equals($"Segment {i}", StringComparison.OrdinalIgnoreCase))
                     continue;
 
-                // -----
-                // test Skills and Bosses by name directly
+                bool matchFound = false;
                 foreach (var type in Enum.GetValues(typeof(SplitType)).Cast<SplitType>())
                 {
-                    if ((type.GetCategory().Equals("Skills") || type.GetCategory().Equals("Bosses"))
-                        && segmentName.Equals(type.GetDisplayName(), StringComparison.OrdinalIgnoreCase))
+                    foreach (string pattern in type.GetAutoAssignPatterns())
                     {
-                        entry.Type = type;
+                        var match = Regex.Match(
+                            segmentName,
+                            pattern,
+                            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+                        if (!match.Success)
+                            continue;
+
+                        ApplyAutoAssignmentMatch(entry, type, match);
                         matchFound = true;
                         break;
                     }
+
+                    if (matchFound)
+                        break;
                 }
-                // Managed to identify split type?
+
                 if (matchFound)
                     continue;
 
-                // -----
-                // Following categories have additional parameters
-                char[] delimiters = new char[] { ' ', ':' };
-                string[] subs = segmentName.Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
-                
-                // Make sure we have at least two parts to work with (e.g., "Scroll 1" or "Scene Level1")
-                if (subs.Length < 2)
-                    continue;
-
-                // -----
-                // Scrolls
-                if (subs[0].Equals("Scroll", StringComparison.OrdinalIgnoreCase))
-                {
-                    entry.Type = SplitType.Scrolls;
-
-                    // Try to parse the second part as an integer for the Scroll ID
-                    if (int.TryParse(subs[1], out int scrollId) && scrollId > 0 && scrollId <= 100)
-                    {
-                        entry.ScrollId = scrollId;
-                    }
-                    // Safety fallback to match UI
-                    else
-                    {
-                        entry.ScrollId = 1; // Default to 1 if parsing fails
-                    }
-
-                    matchFound = true;
-                }
-                // Managed to identify split type?
-                if (matchFound)
-                    continue;
-                
-                // -----
-                // Scene Entered
-                if (subs[0].Equals("Scene", StringComparison.OrdinalIgnoreCase)
-                    || subs[0].Equals("Enter", StringComparison.OrdinalIgnoreCase)
-                    || subs[0].Equals("SceneEntered", StringComparison.OrdinalIgnoreCase))
-                {
-                    entry.Type = SplitType.SceneEntered;
-
-                    // Now use the rest as the scene name (scene names can contain spaces)
-                    int toSkip = 1;
-
-                    // Special case of "Scene Entered"
-                    if (string.Join(" ", subs.Take(2)).Equals("Scene Entered", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (subs.Length == 2) // Does not actually have a scene name
-                            continue;
-                        else
-                            toSkip = 2;
-                    }
-
-                    entry.SceneName = string.Join(" ", subs.Skip(toSkip));
-
-                    matchFound = true;
-                }
-                // Managed to identify split type?
-                if (matchFound)
-                    continue;
-
-                // -----
-                // If no match was found, reset it to ManualSplit and clear any extra parameters (but keep the segment name)
                 entry.ResetToManual(clearSegmentName: false);
             }
 
             RebuildRows();
+        }
+
+        private static void ApplyAutoAssignmentMatch(SplitEntry entry, SplitType type, Match match)
+        {
+            entry.ResetToManual(clearSegmentName: false);
+            entry.Type = type;
+
+            if (type == SplitType.Scrolls)
+            {
+                int scrollId = 1;
+                if (int.TryParse(match.Groups["id"].Value, out int parsedScrollId)
+                    && parsedScrollId >= 1 && parsedScrollId <= 100)
+                {
+                    scrollId = parsedScrollId;
+                }
+
+                entry.ScrollId = scrollId;
+            }
+            else if (type == SplitType.SceneEntered)
+            {
+                entry.SceneName = match.Groups["scene"].Value;
+            }
         }
 
         private void ResetAllSplitConditions()
